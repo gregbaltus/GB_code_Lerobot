@@ -1,0 +1,47 @@
+# Ignore everything by default
+/*
+
+# Track only these
+!/GB_code/
+!/GB_code_camera/
+!/GB_code_permabot_labo/
+!/GB_Calibration/
+!/GB_README_LINK.txt
+!/.gitignore
+
+# Within the tracked folders, exclude large/generated content that isn't "script":
+
+# Local copies of trained model checkpoints -- already on the Hugging Face Hub,
+# no need to duplicate multi-hundred-MB/GB weights in git. Matches e.g.
+# act_ClickTargetPreprocess..., act__ClickTargetPreprocess... (double underscore),
+# smolvla_ClickTargetPreprocess..., act_PermaBotLabo_v1.
+act_*/
+smolvla_*/
+
+# Python bytecode cache
+__pycache__/
+
+# Screenshots, calibration frames, captured training photos -- none of this is script
+*.png
+*.jpg
+*.jpeg
+
+# Captured/labeled datasets (large, regenerable, not code) -- e.g.
+# GB_code_permabot_labo/GB_YOLO_finetuning/data/raw_images/
+data/
+
+# Catch-all in case a stray model weight file ever ends up outside a named
+# checkpoint dir above
+*.safetensors
+*.pt
+*.pth
+*.bin
+
+# Zipped archives (e.g. GB_Calibration/Calibrations/frames.zip -- same calibration
+# images already excluded above, just zipped)
+*.zip
+
+# Third-party tool cloned from GitHub (TemugeB/python_stereo_camera_calibrate),
+# not code we wrote -- its own nested .git is also why git warned about an
+# "embedded git repository" here
+/GB_Calibration/Calibrations/python_stereo_camera_calibrate/
