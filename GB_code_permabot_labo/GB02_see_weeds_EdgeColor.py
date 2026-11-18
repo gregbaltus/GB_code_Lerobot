@@ -50,34 +50,6 @@ CAMERA_FPS    = 30
 WARMUP_FRAMES = 5
 
 # ---------------------------------------------------------------------------
-# Region of interest -- the soil bed is a rectangle, but rotated relative to
-# the camera, so a simple axis-aligned (x, y, w, h) box can't tightly match
-# it: a box big enough to contain the whole bed still leaks some background
-# in at the corners. Instead this is a 4-corner polygon (clockwise from
-# top-left), masked with cv2.fillPoly -- everything outside it is excluded
-# from detection, following the bed's true tilted shape.
-#
-# These corners are a PROPORTIONAL ESTIMATE eyeballed from the screenshot you
-# shared, scaled to CAMERA_WIDTH x CAMERA_HEIGHT -- the screenshot was a
-# different resolution/crop than your live feed, so treat these as a rough
-# starting point, not a calibrated value. Tune live: run the script, look at
-# the yellow polygon outline show_detections() draws, and nudge the 4 points
-# until it tightly traces the soil bed's true edges.
-# ---------------------------------------------------------------------------
-ROI_POLYGON = [
-    (54, 14),    # top-left corner of the soil bed
-    (623, 3),    # top-right corner
-    (640, 345),  # bottom-right corner
-    (52, 269),   # bottom-left corner
-]
-
-
-def build_roi_mask(frame_shape, polygon):
-    mask = np.zeros(frame_shape[:2], dtype=np.uint8)
-    cv2.fillPoly(mask, [np.array(polygon, dtype=np.int32)], 255)
-    return mask
-
-# ---------------------------------------------------------------------------
 # Plant colour -- green hue only (confirmed: all weed props are the
 # grayish-green material, not the reddish-brown variety). Loose S/V bounds
 # since leaf brightness/saturation varied a lot across the test image
@@ -99,12 +71,9 @@ def build_mask(hsv, hsv_ranges):
     return mask
 
 
-def find_plant_blobs(hsv, roi_mask):
-    """Return every green plant blob inside roi_mask, classified by area.
-    Operates on the full frame (masked, not cropped), so centers/bboxes come
-    out already in full-frame coordinates -- no offset bookkeeping needed."""
+def find_plant_blobs(hsv):
+    """Return every green plant blob in the frame, classified by area."""
     mask = build_mask(hsv, PLANT_HSV_RANGES)
-    mask = cv2.bitwise_and(mask, mask, mask=roi_mask)
 
     k    = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, k)
@@ -156,9 +125,6 @@ def show_detections(frame_bgr, blobs):
     fig, ax   = plt.subplots(figsize=(10, 7))
     ax.imshow(frame_rgb)
 
-    ax.add_patch(patches.Polygon(ROI_POLYGON, closed=True,
-                 linewidth=1, edgecolor='yellow', facecolor='none', linestyle=':'))
-
     for blob in blobs:
         x, y, w, h = blob["bbox"]
         cx, cy     = blob["center"]
@@ -206,8 +172,7 @@ def main():
 
             frame_bgr = capture_snapshot(cap)
             hsv       = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
-            roi_mask  = build_roi_mask(frame_bgr.shape, ROI_POLYGON)
-            blobs     = find_plant_blobs(hsv, roi_mask)
+            blobs     = find_plant_blobs(hsv)
 
             if not blobs:
                 print("  Nothing detected. Try again.\n")
