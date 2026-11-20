@@ -41,15 +41,15 @@ from GB02_visualize_labels import color_for_class, load_dataset_config, load_yol
 # ---------------------------------------------------------------------------
 # Model -- a LOCAL path, same git-clone-from-Hub workflow as your ACT
 # checkpoints. Edit this once you've cloned GB04's pushed model repo
-# (git clone https://huggingface.co/Greynar/yolo_PermaBotLaboWeedDetection).
+# (git clone https://huggingface.co/Greynar/yolo_PermaBotLaboWeedDetection_oakd_v1).
 # ---------------------------------------------------------------------------
-MODEL_PATH = "yolo_PermaBotLaboWeedDetection_pretest/weights/best.pt"
+MODEL_PATH = "yolo_PermaBotLaboWeedDetection_oakd_v1/weights/best.pt"
 
 # ---------------------------------------------------------------------------
 # Dataset -- same Hub repo GB04 trained from; downloaded fresh here too
 # (cheap/cached after the first call) so this test is self-contained.
 # ---------------------------------------------------------------------------
-DATASET_REPO_ID = "Greynar/PermaBotLaboWeedDetectionYOLO"
+DATASET_REPO_ID = "Greynar/PermaBotLaboWeedDetectionYOLO_oakd_v1"
 
 CONFIDENCE_THRESHOLD = 0.25  # Ultralytics' own default -- lower = more (possibly false) detections
 
@@ -98,7 +98,7 @@ def main():
     if not os.path.exists(MODEL_PATH):
         print(f"No checkpoint found at {MODEL_PATH} -- edit MODEL_PATH to wherever you "
               f"cloned the trained model from the Hub "
-              f"(git clone https://huggingface.co/Greynar/yolo_PermaBotLaboWeedDetection).")
+              f"(git clone https://huggingface.co/Greynar/yolo_PermaBotLaboWeedDetection_oakd_v1).")
         return
 
     print(f"Loading model: {MODEL_PATH}")

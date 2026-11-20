@@ -25,12 +25,12 @@ from huggingface_hub import HfApi
 # ---------------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-DATASET_FOLDER_NAME = "Crop and Weed Detection.v1-crop-weed-baseline.yolov11"
+DATASET_FOLDER_NAME = "Crop and Weed Detecction OAK-D.v1i.yolov11"
 
 # ---------------------------------------------------------------------------
 # Hub destination -- edit before running if you want a different name/visibility
 # ---------------------------------------------------------------------------
-DATASET_REPO_ID = "Greynar/PermaBotLaboWeedDetectionYOLO"
+DATASET_REPO_ID = "Greynar/PermaBotLaboWeedDetectionYOLO_oakd_v1"
 PRIVATE = True
 
 

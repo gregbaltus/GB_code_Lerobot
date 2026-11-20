@@ -4,7 +4,7 @@ GB02_visualize_labels.py
 
 Workflow this fits into: GB02_see_weeds.py (classical detector) turned out
 not to generalize across lighting conditions, so labeling is done by hand
-instead, directly in Roboflow -- upload data/raw_images/, draw boxes for
+instead, directly in Roboflow -- upload data/<RAW_DATASET_NAME>/ (from GB01), draw boxes for
 every weed/crop yourself, then generate + download a dataset version from
 Roboflow (YOLO11 or YOLOv8 export format) into this folder's data/
 directory. ONLY ONCE that's downloaded does this script become useful.
@@ -38,7 +38,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 # Which downloaded Roboflow export to view -- the folder name under data/
 # (exactly as Roboflow names it on download, e.g. "<project>.v<N>-<version-name>.<format>").
 # Change this whenever you want to look at a different dataset version/export.
-DATASET_FOLDER_NAME = "Crop and Weed Detection.v1-crop-weed-baseline.yolov11"
+DATASET_FOLDER_NAME = "Crop and Weed Detecction OAK-D.v1i.yolov11"
 
 
 def find_dataset_root():

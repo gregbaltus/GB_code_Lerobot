@@ -6,6 +6,7 @@
 !/GB_code_camera/
 !/GB_code_permabot_labo/
 !/GB_code_classic_method/
+!/GB_code_RGBD/
 !/GB_Calibration/
 !/GB_README_LINK.txt
 !/.gitignore
@@ -33,6 +34,12 @@ __pycache__/
 # Captured/labeled datasets (large, regenerable, not code) -- e.g.
 # GB_code_permabot_labo/GB_YOLO_finetuning/data/raw_images/
 data/
+
+# Ultralytics output folders (val/predict/train runs) and throwaway test
+# results, e.g. GB_code_permabot_labo/GB_YOLO_finetuning/tmp_quickTest/
+# (YOLO predictions + .txt label files) -- generated, not code
+runs/
+tmp_*/
 
 # Catch-all in case a stray model weight file ever ends up outside a named
 # checkpoint dir above

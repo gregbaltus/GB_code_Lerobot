@@ -34,7 +34,7 @@ from ultralytics import YOLO
 # ---------------------------------------------------------------------------
 # Dataset -- downloaded from the Hub at runtime, not manually copied over
 # ---------------------------------------------------------------------------
-DATASET_REPO_ID = "Greynar/PermaBotLaboWeedDetectionYOLO"
+DATASET_REPO_ID = "Greynar/PermaBotLaboWeedDetectionYOLO_oakd_v1"
 
 # ---------------------------------------------------------------------------
 # Base checkpoint -- "nano", smallest/fastest YOLO11 variant, a good fit for
@@ -50,13 +50,13 @@ BASE_MODEL = "yolo11n.pt"
 EPOCHS     = 50
 BATCH_SIZE = 8
 IMAGE_SIZE = 640
-RUN_NAME   = "weed_detection_v1"  # <- bump this each run so Ultralytics doesn't overwrite past runs
+RUN_NAME   = "weed_detection_oakd_v1"  # <- bump this each run so Ultralytics doesn't overwrite past runs
 
 # ---------------------------------------------------------------------------
 # Hub destination for the trained checkpoint -- edit before running if you
 # want a different name/visibility
 # ---------------------------------------------------------------------------
-MODEL_REPO_ID = "Greynar/yolo_PermaBotLaboWeedDetection"
+MODEL_REPO_ID = "Greynar/yolo_PermaBotLaboWeedDetection_oakd_v1"
 PRIVATE       = True
 
 

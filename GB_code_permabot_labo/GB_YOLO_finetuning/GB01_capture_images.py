@@ -22,12 +22,25 @@ lighting and plant positions between sessions rather than capturing many
 near-identical frames in one sitting. Image numbering resumes automatically
 across sessions, so you can run this script as many times as you like.
 
+CAMERA SWITCH: set CAMERA_OAK below.
+  - False -> plain webcam (/dev/video2, 640x480) via OpenCV
+  - True  -> OAK-D Pro RGB stream (CAM_A, 1280x800, RGB only -- no depth) via
+             depthai (same API usage as GB_code_RGBD/GB01_oakd_see_streams.py)
+
+OUTPUT FOLDER: set RAW_DATASET_NAME below -- images go to data/<RAW_DATASET_NAME>/.
+Use a NEW name for every new dataset / new YOLO (see README.md). Re-using an
+existing name appends to that dataset (numbering resumes where it stopped).
+Existing raw datasets:
+  - data/raw_webcam_v1/  -> webcam images behind Roboflow export
+                            "Crop and Weed Detection.v1-crop-weed-baseline.yolov11"
+
 Usage: press Enter to capture (shows a preview you can accept or retake),
        'r' to retake the last preview, 'q' to quit.
 """
 
 import glob
 import os
+import time
 
 import cv2
 import matplotlib
@@ -35,29 +48,99 @@ matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
 # ---------------------------------------------------------------------------
-# Camera -- identical setup to GB02_see_weeds.py
+# Camera switch -- True = OAK-D Pro (depthai), False = standard webcam (OpenCV)
 # ---------------------------------------------------------------------------
+CAMERA_OAK = True
+
+# Webcam -- identical setup to GB02_see_weeds.py
 CAMERA_INDEX  = "/dev/video2"
 CAMERA_WIDTH  = 640
 CAMERA_HEIGHT = 480
 CAMERA_FPS    = 30
 WARMUP_FRAMES = 5
 
+# OAK-D -- RGB only, same resolution as GB_code_RGBD/IL_pipeline/GB02_oakd_two_camera_teleop.py
+OAK_RGB_SIZE      = (1280, 800)
+OAK_FPS           = 15
+OAK_WARMUP_FRAMES = 30   # auto-exposure/focus need longer to converge on the OAK-D
+OAK_TIMEOUT_S     = 10.0
+
 # ---------------------------------------------------------------------------
-# Output
+# Output -- one folder per dataset: data/<RAW_DATASET_NAME>/
+# Pick a NEW name for each new dataset so previous captures are never mixed in.
 # ---------------------------------------------------------------------------
-OUTPUT_DIR     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw_images")
-FILENAME_STEM  = "img"
+RAW_DATASET_NAME = "raw_oakd_v1"
+
+BASE_DIR        = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR      = os.path.join(BASE_DIR, "data", RAW_DATASET_NAME)
+FILENAME_STEM   = "img"
 FILENAME_DIGITS = 4
 
 
-def capture_snapshot(cap, warmup=WARMUP_FRAMES):
-    for _ in range(warmup):
-        cap.read()
-    ret, frame = cap.read()
-    if not ret:
-        raise RuntimeError("Failed to read frame from camera.")
-    return frame
+class WebcamCamera:
+    name = f"webcam {CAMERA_INDEX} ({CAMERA_WIDTH}x{CAMERA_HEIGHT})"
+
+    def __init__(self):
+        self.cap = cv2.VideoCapture(CAMERA_INDEX)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH,  CAMERA_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
+        self.cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
+        if not self.cap.isOpened():
+            raise RuntimeError(f"Cannot open camera {CAMERA_INDEX}.")
+
+    def snapshot(self):
+        for _ in range(WARMUP_FRAMES):
+            self.cap.read()
+        ret, frame = self.cap.read()
+        if not ret:
+            raise RuntimeError("Failed to read frame from camera.")
+        return frame
+
+    def close(self):
+        self.cap.release()
+
+
+class OakCamera:
+    name = f"OAK-D RGB CAM_A ({OAK_RGB_SIZE[0]}x{OAK_RGB_SIZE[1]})"
+
+    def __init__(self):
+        import depthai as dai  # imported lazily so webcam mode doesn't need depthai
+
+        self.pipeline = dai.Pipeline(dai.Device())
+        device = self.pipeline.getDefaultDevice()
+        print(f"OAK-D connected: {device.getDeviceName()}  USB speed: {device.getUsbSpeed().name}")
+
+        rgb_cam = self.pipeline.create(dai.node.Camera)
+        rgb_cam.setSensorType(dai.CameraSensorType.COLOR)
+        rgb_cam.build(dai.CameraBoardSocket.CAM_A, sensorFps=OAK_FPS)
+        cap = dai.ImgFrameCapability()
+        cap.size.fixed(OAK_RGB_SIZE)
+        cap.fps.fixed(OAK_FPS)
+        self.queue = rgb_cam.requestOutput(cap, True).createOutputQueue(maxSize=4, blocking=False)
+        self.pipeline.start()
+
+        print(f"Discarding {OAK_WARMUP_FRAMES} warmup frames (auto-exposure/focus) ...")
+        for _ in range(OAK_WARMUP_FRAMES):
+            self._get_frame()
+
+    def _get_frame(self):
+        start = time.time()
+        while time.time() - start < OAK_TIMEOUT_S:
+            pkt = self.queue.tryGet()
+            if pkt is not None:
+                return pkt.getCvFrame()  # BGR, same convention as cv2.VideoCapture
+            time.sleep(0.01)
+        raise RuntimeError("Timed out waiting for an OAK-D RGB frame.")
+
+    def snapshot(self):
+        # The pipeline keeps streaming while you look at the preview, so drop
+        # the stale buffered frames and return a fresh one.
+        self.queue.tryGetAll()
+        self._get_frame()
+        return self._get_frame()
+
+    def close(self):
+        self.pipeline.stop()
 
 
 def next_index(output_dir, stem):
@@ -97,13 +180,12 @@ def main():
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    cap = cv2.VideoCapture(CAMERA_INDEX)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH,  CAMERA_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
-    cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
-    if not cap.isOpened():
-        print(f"Cannot open camera {CAMERA_INDEX}.")
+    try:
+        camera = OakCamera() if CAMERA_OAK else WebcamCamera()
+    except Exception as e:
+        print(f"Could not open camera: {e}")
         return
+    print(f"Camera: {camera.name}")
 
     index = next_index(OUTPUT_DIR, FILENAME_STEM)
     total_saved = index - 1
@@ -120,19 +202,16 @@ def main():
             if cmd.lower() == 'q':
                 break
 
-            frame = capture_snapshot(cap)
+            frame = camera.snapshot()
 
             while True:
                 show_preview(frame, index, total_saved)
                 decision = input("  Keep this one? [Enter=keep, r=retake, q=quit]: ").strip().lower()
                 if decision == 'q':
-                    print("Done.")
-                    cap.release()
-                    plt.close('all')
                     return
                 elif decision == 'r':
                     print("  Retaking...")
-                    frame = capture_snapshot(cap)
+                    frame = camera.snapshot()
                     continue
                 else:
                     break
@@ -147,7 +226,7 @@ def main():
     except KeyboardInterrupt:
         print("\nInterrupted.")
     finally:
-        cap.release()
+        camera.close()
         plt.close('all')
         print("Done.")
 

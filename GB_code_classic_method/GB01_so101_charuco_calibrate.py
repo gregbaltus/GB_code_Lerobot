@@ -111,7 +111,16 @@ MIN_CORNERS_FOR_FRAME = 6  # discard a capture if fewer charuco corners were see
 # joint names, so no name-order gotchas going into joint_pos_deg_from_obs().
 # ---------------------------------------------------------------------------
 URDF_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "so101_new_calib.urdf")
-TARGET_FRAME_NAME = "gripper"
+# "gripper_frame_link" (NOT "gripper") -- the URDF defines this as a dummy
+# link fixed to gripper_link via a FIXED joint, purpose-built as the tool
+# reference frame. Verified empirically: target_frame_name="gripper" silently
+# resolves to a DIFFERENT point ~7cm away (likely gripper_link's own origin,
+# before the gripper_frame_joint offset). Both are rigid w.r.t. wrist_roll
+# and unaffected by the gripper/jaw joint angle (confirmed: FK output is
+# identical whether the jaw is closed or opened 80 degrees) -- so this
+# wouldn't have broken calibration, but gripper_frame_link is the correct,
+# intentional one.
+TARGET_FRAME_NAME = "gripper_frame_link"
 JOINT_NAMES = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 
 
